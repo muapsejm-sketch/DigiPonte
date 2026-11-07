@@ -27,3 +27,201 @@ nav{position:fixed;bottom:0;left:0;right:0;background:var(--card);border-top:1px
 nav button{background:none;border:0;color:var(--mu);font-family:inherit;font-weight:600;font-size:12px;padding:6px 8px;position:relative;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px}
 nav button b{font-size:20px;font-weight:400}nav button.on{color:var(--br)}
 .badge{position:absolute;top:0;right:2px;background:var(--bad);color:#fff;border-radius:9px;font-size:11px;padding:0 5px}
+input,select,textarea{width:100%;padding:11px 12px;border:1px solid var(--bd);border-radius:10px;background:var(--card);color:var(--tx);font:inherit;margin:4px 0 10px}
+label{font-size:13px;font-weight:600;color:var(--mu)}
+.btn{background:var(--br);color:#fff;border:0;border-radius:10px;padding:11px 16px;font-family:inherit;font-weight:600;font-size:15px;cursor:pointer}
+.btn.sec{background:var(--br2);color:var(--br)}.btn.bad{background:none;color:var(--bad);border:1px solid var(--bd)}
+.chips{display:flex;gap:8px;overflow-x:auto;padding:4px 0 12px}.chip{white-space:nowrap;border:1px solid var(--bd);background:var(--card);color:var(--tx);border-radius:20px;padding:6px 13px;font:inherit;font-size:14px;cursor:pointer}.chip.on{background:var(--br);color:#fff;border-color:var(--br)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:14px;overflow:hidden;cursor:pointer}
+.ph{aspect-ratio:4/3;background:var(--br2);display:flex;align-items:center;justify-content:center;font-size:34px;color:var(--br)}.ph img{width:100%;height:100%;object-fit:cover}
+.card .in{padding:9px 11px}.price{font-weight:800;color:var(--br)}.mu{color:var(--mu);font-size:13px}
+.box{background:var(--card);border:1px solid var(--bd);border-radius:14px;padding:14px;margin-bottom:12px}
+.row{display:flex;gap:10px;align-items:center}.row>.g{flex:1;min-width:0}
+.tag{display:inline-block;background:var(--br2);color:var(--br);border-radius:6px;font-size:12px;font-weight:600;padding:2px 8px;margin-right:4px}.tag.s{background:var(--ac);color:#222}
+.note{background:var(--br2);border-radius:10px;padding:10px 12px;font-size:14px;margin:10px 0}
+.empty{text-align:center;color:var(--mu);padding:30px 10px}
+.msgs{height:55vh;overflow-y:auto;display:flex;flex-direction:column;gap:6px;padding:6px 2px}
+.m{max-width:80%;padding:8px 11px;border-radius:14px;background:var(--card);border:1px solid var(--bd);align-self:flex-start;white-space:pre-wrap;word-break:break-word}
+.m.me{align-self:flex-end;background:var(--br);color:#fff;border-color:var(--br)}.m img{max-width:100%;border-radius:8px;display:block}.m small{display:block;opacity:.7;font-size:11px;margin-top:2px}
+.bar{display:flex;gap:8px;align-items:center}.bar input{margin:0}.bar .btn{padding:11px 14px}
+h2{margin:6px 0 12px;font-size:20px}.big{width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:14px}
+</style>
+</head>
+<body>
+<header><div class="logo" onclick="go('home')"><svg viewBox="0 0 48 48"><rect width="48" height="48" rx="11" fill="#1557d6"/><path d="M8 30h32M12 30a12 12 0 0 1 24 0M18 30v-8M24 30V18M30 30v-8" stroke="#fff" stroke-width="2.4" fill="none" stroke-linecap="round"/></svg>Digi<span>Ponte</span></div><button class="ib" id="bell" onclick="go('msgs')" aria-label="Notificações"></button><button class="ib" id="usr" onclick="go('acct')" aria-label="Conta"></button></header>
+<main id="app"><p class="empty">A carregar…</p></main>
+<nav id="nav"></nav>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script>
+const SB_URL='https://fonkmhvxkyxmikrnodxk.supabase.co',SB_KEY='sb_publishable_BHcz7G_Y9CIQW5nLuCr3cA_eBZVgrVh';
+const sb=supabase.createClient(SB_URL,SB_KEY);
+const $=s=>document.querySelector(s);
+const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const PROV=['Maputo Cidade','Maputo Província','Gaza','Inhambane','Sofala','Manica','Tete','Zambézia','Nampula','Cabo Delgado','Niassa'];
+const SVC=['Netflix','Spotify','ChatGPT','Claude','Canva','YouTube Premium','Disney+','Microsoft 365','Outro'];
+const CI={'Streaming':'tv','Música':'music','Inteligência Artificial':'bot'};
+const DEMO=[['bot','ChatGPT Plus (exemplo)','1450,00 MT','Até 24 horas'],['music','Spotify Premium (exemplo)','350,00 MT','Até 12 horas'],['tv','Streaming de vídeo (exemplo)','250,00 MT','Até 12 horas']];
+const mzn=n=>new Intl.NumberFormat('pt-PT').format(n||0)+' MZN';
+let S={me:null,prof:null,L:[],C:[],U:{},cats:[],F:new Set(),names:{},unread:0,view:'home',sel:null,q:'',cat:'',fprov:'',pmax:'',A:null};
+let chan=null;
+const nm=id=>S.names[id]||'Utilizador';
+const catName=l=>(S.cats.find(c=>c.id===l.category_id)||{}).name||'';
+const imgs=l=>(l.listing_images||[]).slice().sort((a,b)=>a.position-b.position).map(i=>sb.storage.from('listing-images').getPublicUrl(i.path).data.publicUrl);
+const isAdmin=()=>S.prof&&S.prof.role==='admin';
+const approved=()=>S.prof&&S.prof.seller_status==='approved';
+const ERR=e=>alert('Não foi possível concluir: '+(e&&e.message?e.message:'tente novamente'));
+const ICON={home:'<path d="M3 11l9-8 9 8"/><path d="M5 10v10h5v-6h4v6h5V10"/>',grid:'<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>',list:'<rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 8h6M9 12h6M9 16h4"/>',shield:'<path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/><path d="M9 12l2 2 4-4"/>',user:'<circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/>',bell:'<path d="M6 16v-5a6 6 0 0 1 12 0v5l2 2H4z"/><path d="M10 21a2 2 0 0 0 4 0"/>',bot:'<rect x="4" y="8" width="16" height="12" rx="3"/><path d="M12 8V4M9 14h.01M15 14h.01"/>',music:'<path d="M9 18V6l10-2v12"/><circle cx="7" cy="18" r="2"/><circle cx="17" cy="16" r="2"/>',tv:'<rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 3l4 4 4-4"/>',star:'<path d="M12 3l2.8 5.7 6.2.9-4.5 4.4 1 6.2-5.5-2.9-5.5 2.9 1-6.2L3 9.6l6.2-.9z"/>',search:'<circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/>',bolt:'<path d="M13 2L4 14h7l-1 8 9-12h-7z"/>',phone:'<rect x="7" y="2" width="10" height="20" rx="2"/><path d="M11 18h2"/>'};
+const ic=(n,s=24)=>`<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${ICON[n]||ICON.star}</svg>`;
+$('#usr').innerHTML=ic('user',26);
+
+async function names(ids){const need=[...new Set(ids)].filter(i=>i&&!S.names[i]);if(!need.length)return;const {data}=await sb.from('public_profiles').select('id,name').in('id',need);(data||[]).forEach(p=>S.names[p.id]=p.name)}
+async function loadAll(){
+  const [c,l]=await Promise.all([sb.from('categories').select('*').eq('active',true).order('id'),sb.from('listings').select('*,listing_images(path,position)').order('created_at',{ascending:false}).limit(200)]);
+  S.cats=c.data||[];S.L=l.data||[];await names(S.L.map(x=>x.seller_id));
+}
+async function loadConvos(){
+  if(!S.me)return;
+  const {data}=await sb.from('conversations').select('*,listings(title,price_mzn)').order('last_message_at',{ascending:false});S.C=data||[];
+  const u=await sb.from('messages').select('conversation_id').is('read_at',null).neq('sender_id',S.me.id);
+  S.U={};(u.data||[]).forEach(m=>S.U[m.conversation_id]=1);S.unread=Object.keys(S.U).length;
+  await names(S.C.flatMap(c=>[c.buyer_id,c.seller_id]));
+}
+async function setUser(u){
+  S.me=u;S.prof=null;S.F=new Set();S.C=[];S.U={};S.unread=0;
+  if(chan){sb.removeChannel(chan);chan=null}
+  if(u){
+    const p=await sb.from('profiles').select('*').eq('id',u.id).single();S.prof=p.data;
+    const f=await sb.from('favorites').select('listing_id');S.F=new Set((f.data||[]).map(x=>x.listing_id));
+    await loadConvos();
+    chan=sb.channel('m-'+u.id).on('postgres_changes',{event:'*',schema:'public',table:'messages'},async()=>{await loadConvos();S.view==='chat'?(nav(),loadMsgs()):render()}).subscribe();
+  }
+  await loadAll();render();
+}
+(async()=>{
+  const {data}=await sb.auth.getSession();await setUser(data.session?data.session.user:null);
+  sb.auth.onAuthStateChange((_e,s)=>{const u=s?s.user:null;if((u&&u.id)!==(S.me&&S.me.id))setUser(u)});
+})();
+
+function go(v,s){
+  if(['publish','mine','fav','msgs','chat','acct','admin'].includes(v)&&!S.me)v='auth';
+  if(v==='admin'&&!isAdmin())v='home';
+  S.view=v;S.sel=s||null;
+  if(v==='detail'&&s)sb.rpc('increment_views',{lid:s}).then(()=>{});
+  render();scrollTo(0,0);
+}
+function nav(){
+  const t=[['home','home','Início'],['serv','grid','Serviços'],['msgs','list','Pedidos'],['acct','user','Conta']];
+  if(isAdmin())t.splice(3,0,['admin','shield','Admin']);
+  $('#nav').innerHTML=t.map(([k,i,l])=>`<button class="${S.view===k||(k==='msgs'&&S.view==='chat')?'on':''}" onclick="go('${k}')">${ic(i)}${l}${k==='msgs'&&S.unread?`<span class="badge">${S.unread}</span>`:''}</button>`).join('');
+  $('#bell').innerHTML=ic('bell',26)+(S.unread?`<span class="badge">${S.unread}</span>`:'');
+  document.title=(S.unread?`(${S.unread}) `:'')+'DigiPonte';
+}
+function card(l){const i=imgs(l)[0];return `<div class="card" onclick="go('detail','${l.id}')"><div class="ph">${i?`<img src="${esc(i)}" alt="" loading="lazy">`:'▣'}</div><div class="in"><div class="price">${mzn(l.price_mzn)}</div><div>${esc(l.title)}</div><div class="mu">${esc(l.service||'')}${l.duration?' · '+esc(l.duration):''}</div><div class="mu">${esc(l.province||'')}${l.status!=='disponivel'?' · <b>'+esc(l.status)+'</b>':''}</div></div></div>`}
+const active=()=>S.L.filter(l=>l.moderation==='ativo'&&l.status!=='vendido');
+
+function render(){
+  nav();const a=$('#app'),v=S.view;
+  if(v==='home')return homeV(a);
+  if(v==='serv'){
+    const r=active().filter(l=>(!S.cat||catName(l)===S.cat)&&(!S.fprov||l.province===S.fprov)&&(!S.pmax||l.price_mzn<=Number(S.pmax))&&(!S.q||(l.title+' '+(l.description||'')+' '+(l.service||'')).toLowerCase().includes(S.q.toLowerCase())));
+    a.innerHTML=`<input id="q" type="search" placeholder="Pesquisar Netflix, Spotify, ChatGPT, Claude, Canva…" value="${esc(S.q)}"><div class="row"><select id="fp"><option value="">Todo o país</option>${PROV.map(p=>`<option ${S.fprov===p?'selected':''}>${esc(p)}</option>`).join('')}</select><input id="pm" type="number" placeholder="Preço máx. (MZN)" value="${esc(S.pmax)}"></div><div class="chips"><button class="chip ${S.cat?'':'on'}" data-c="">Tudo</button>${S.cats.map(c=>`<button class="chip ${S.cat===c.name?'on':''}" data-c="${esc(c.name)}">${esc(c.name)}</button>`).join('')}</div>${r.length?`<div class="grid">${r.map(card).join('')}</div>`:'<p class="empty">Nenhum anúncio encontrado.</p>'}`;
+    const qi=$('#q');qi.oninput=e=>{S.q=e.target.value;const p=e.target.selectionStart;render();const n=$('#q');n.focus();n.setSelectionRange(p,p)};
+    $('#fp').onchange=e=>{S.fprov=e.target.value;render()};$('#pm').onchange=e=>{S.pmax=e.target.value;render()};
+    a.querySelectorAll('.chip').forEach(b=>b.onclick=()=>{S.cat=b.dataset.c;render()});
+  }else if(v==='detail'){
+    const l=S.L.find(x=>x.id===S.sel);if(!l){a.innerHTML='<p class="empty">Anúncio não encontrado.</p>';return}
+    const g=imgs(l),own=S.me&&l.seller_id===S.me.id;
+    a.innerHTML=`<button class="btn sec" onclick="go('serv')">← Voltar</button><div style="height:10px"></div>${g.length?`<img class="big" src="${esc(g[0])}" alt="">`+(g.length>1?`<div class="row" style="margin:6px 0">${g.slice(1).map(u=>`<img src="${esc(u)}" style="width:25%;aspect-ratio:1;object-fit:cover;border-radius:8px" alt="">`).join('')}</div>`:''):''}<div class="box"><h2>${esc(l.title)}</h2><div class="price" style="font-size:22px">${mzn(l.price_mzn)}</div><p><span class="tag">${esc(catName(l))}</span>${l.service?`<span class="tag">${esc(l.service)}</span>`:''}${l.duration?`<span class="tag">${esc(l.duration)}</span>`:''}<span class="tag">${esc(l.province||'')}</span><span class="tag s">${esc(l.status)}</span></p><p style="white-space:pre-wrap">${esc(l.description)}</p><p class="mu">Vendedor: ${esc(nm(l.seller_id))}</p>${own?`<div class="row"><button class="btn sec" onclick="setSt('${l.id}','disponivel')">Disponível</button><button class="btn sec" onclick="setSt('${l.id}','reservado')">Reservado</button><button class="btn sec" onclick="setSt('${l.id}','vendido')">Vendido</button></div><button class="btn bad" style="margin-top:8px" onclick="del('${l.id}')">Eliminar</button>`:`<button class="btn" style="width:100%" onclick="startChat('${l.id}')">Conversar com o vendedor</button><div class="row" style="margin-top:8px"><button class="btn sec g" onclick="fav('${l.id}')">${S.F.has(l.id)?'♥ Nos favoritos':'♡ Favoritar'}</button><button class="btn bad" onclick="report('${l.id}')">Denunciar</button></div>`}<div class="note">O DigiPonte não processa pagamentos. Combine o preço, a entrega e a forma de pagamento diretamente com o vendedor no chat. Confirme com o vendedor como o acesso será entregue e as condições do plano antes de pagar.</div></div>`;
+  }else if(v==='publish')publishV(a);
+  else if(v==='mine'){
+    const r=S.L.filter(l=>l.seller_id===S.me.id);
+    a.innerHTML=`<h2>Painel do vendedor</h2><div class="box">Ativos: <b>${r.filter(l=>l.moderation==='ativo'&&l.status!=='vendido').length}</b> · Vendidos: <b>${r.filter(l=>l.status==='vendido').length}</b> · Visualizações: <b>${r.reduce((n,l)=>n+(l.views||0),0)}</b> · Conversas: <b>${S.C.filter(c=>c.seller_id===S.me.id).length}</b></div>${r.map(l=>`<div class="box row" style="cursor:pointer" onclick="go('detail','${l.id}')"><div class="g"><b>${esc(l.title)}</b><div class="mu">${mzn(l.price_mzn)} · ${esc(l.status)}${l.moderation!=='ativo'?' · '+esc(l.moderation):''}</div></div><div class="mu">👁 ${l.views||0} · ✉ ${S.C.filter(c=>c.listing_id===l.id).length}</div></div>`).join('')||'<p class="empty">Ainda não publicou nada.</p>'}`;
+  }else if(v==='fav'){
+    const r=S.L.filter(l=>S.F.has(l.id));
+    a.innerHTML=`<h2>Favoritos</h2>${r.length?`<div class="grid">${r.map(card).join('')}</div>`:'<p class="empty">Toque em ♡ num anúncio para o guardar aqui.</p>'}`;
+  }else if(v==='msgs'){
+    a.innerHTML=`<h2>Pedidos e conversas</h2>${S.C.length?S.C.map(c=>{const o=c.buyer_id===S.me.id?c.seller_id:c.buyer_id;return `<div class="box row" style="cursor:pointer" onclick="go('chat','${c.id}')"><div class="g"><b>${esc(c.listings?c.listings.title:'Anúncio')}</b><div class="mu">${esc(nm(o))}</div></div>${S.U[c.id]?'<span class="badge" style="position:static">novo</span>':''}</div>`}).join(''):'<p class="empty">Ainda não tem conversas. Abra um anúncio e fale com o vendedor.</p>'}`;
+  }else if(v==='chat')openChat(a);
+  else if(v==='acct')acctV(a);
+  else if(v==='auth')authV(a);
+  else if(v==='admin')adminV(a);
+}
+function homeV(a){
+  const act=active().slice(0,6);
+  const demo=`<p class="mu">Os exemplos abaixo são demonstrativos, não estão à venda e não representam qualquer parceria oficial.</p>`+DEMO.map(d=>`<div class="demo"><div class="row"><div class="ico">${ic(d[0],24)}</div><span class="pill2">Exemplo · indisponível</span></div><h2 style="margin:14px 0 4px;font-size:22px">${esc(d[1])}</h2><p class="mu" style="font-size:16px">Exemplo demonstrativo — indisponível para compra</p><div class="row" style="align-items:flex-end"><div class="g"><div class="mu">DESDE</div><div style="font-size:28px;font-weight:800">${d[2]}</div></div><div class="mu">${esc(d[3])}</div></div></div>`).join('');
+  a.innerHTML=`<section class="hero"><span class="pill">${ic('phone',16)} Pensado para o teu telemóvel</span><h1>O teu acesso digital, <em>mais perto.</em></h1><p style="opacity:.85;font-size:17px">Subscrições e ativações digitais de vendedores aprovados, com preços em meticais e conversa direta com o vendedor.</p><div class="sb">${ic('search',20)}<input id="hq" placeholder="Procurar um serviço…"><button class="btn" id="hb">Procurar</button></div><div style="display:flex;flex-direction:column;align-items:flex-start;gap:12px;margin-top:18px"><button class="btn w" onclick="go('serv')">Explorar serviços →</button><button class="btn o" onclick="go('publish')">Quero vender</button></div></section><div class="trust"><div>${ic('shield',26)}<br>Vendedores aprovados</div><div>${ic('bolt',26)}<br>Estado em tempo real</div><div><b style="font-size:22px;color:var(--br)">MT</b><br>Preços em meticais</div></div><h2>Categorias</h2><div class="cats">${S.cats.map(c=>`<div class="cat" data-c="${esc(c.name)}"><i>${ic(CI[c.name]||'star',22)}</i>${esc(c.name)}</div>`).join('')}</div><h2>Serviços em destaque</h2>${act.length?`<div class="grid">${act.map(card).join('')}</div>`:demo}`;
+  const g1=()=>{S.q=$('#hq').value;S.cat='';go('serv')};$('#hb').onclick=g1;$('#hq').onkeydown=e=>{if(e.key==='Enter')g1()};
+  a.querySelectorAll('.cat').forEach(b=>b.onclick=()=>{S.cat=b.dataset.c;S.q='';go('serv')});
+}
+function authV(a){
+  a.innerHTML=`<h2 id="at">Entrar</h2><div class="box"><div id="nmw" hidden><label>Nome</label><input id="nm" maxlength="40"></div><label>Email</label><input id="em" type="email" autocomplete="email"><label>Palavra-passe (mín. 6)</label><input id="pw" type="password" autocomplete="current-password"><button class="btn" style="width:100%" id="ab">Entrar</button><p class="mu" style="text-align:center"><a href="#" id="sw" style="color:var(--br)">Criar conta nova</a></p></div>`;
+  let su=false;$('#sw').onclick=e=>{e.preventDefault();su=!su;$('#nmw').hidden=!su;$('#at').textContent=su?'Criar conta':'Entrar';$('#ab').textContent=su?'Criar conta':'Entrar';$('#sw').textContent=su?'Já tenho conta':'Criar conta nova'};
+  $('#ab').onclick=async()=>{const em=$('#em').value.trim(),pw=$('#pw').value;if(!em||pw.length<6)return alert('Indique o email e uma palavra-passe com pelo menos 6 caracteres.');
+    const r=su?await sb.auth.signUp({email:em,password:pw,options:{data:{name:$('#nm').value.trim()||'Utilizador'}}}):await sb.auth.signInWithPassword({email:em,password:pw});
+    if(r.error)return alert(r.error.message);if(su&&!r.data.session)return alert('Conta criada. Confirme o seu email para entrar.');go('home')};
+}
+function acctV(a){
+  const p=S.prof||{},st={none:'Cliente',pending:'Pedido de vendedor em análise',approved:'Vendedor aprovado',suspended:'Vendedor suspenso'}[p.seller_status]||'Cliente';
+  a.innerHTML=`<h2>A minha conta</h2><div class="box"><b>${esc(p.name)}</b><div class="mu">${esc(S.me.email||'')}</div><div class="mu">${isAdmin()?'Administrador':esc(st)}</div></div>${[['publish','Publicar anúncio'],['mine','Painel do vendedor'],['fav','Favoritos']].map(([k,l])=>`<div class="box row" style="cursor:pointer" onclick="go('${k}')"><div class="g"><b>${l}</b></div>›</div>`).join('')}<button class="btn bad" style="width:100%" onclick="sb.auth.signOut()">Terminar sessão</button>`;
+}
+function publishV(a){
+  if(!approved()){
+    const p=S.prof.seller_status;
+    a.innerHTML=`<h2>Quero vender</h2><div class="box">${p==='pending'?'O seu pedido para ser vendedor está em análise. Será avisado quando for aprovado.':p==='suspended'?'A sua conta de vendedor está suspensa.':'Para publicar anúncios, a sua conta tem de ser aprovada como vendedora. Isto protege os compradores.<br><br><button class="btn" id="rq">Pedir para ser vendedor</button>'}</div>`;
+    const r=$('#rq');if(r)r.onclick=async()=>{const e=(await sb.rpc('request_seller')).error;if(e)return ERR(e);S.prof.seller_status='pending';render()};return;
+  }
+  a.innerHTML=`<h2>Publicar anúncio</h2><div class="box"><label>Título</label><input id="t" maxlength="80" placeholder="ex.: Netflix Premium, 1 mês"><label>Serviço</label><select id="sv">${SVC.map(c=>`<option>${esc(c)}</option>`).join('')}</select><label>Duração do plano</label><input id="du" maxlength="40" placeholder="ex.: 1 mês, 12 meses"><label>Categoria</label><select id="c">${S.cats.map(c=>`<option value="${c.id}">${esc(c.name)}</option>`).join('')}</select><label>Preço (MZN)</label><input id="p" type="number" min="0" inputmode="numeric"><label>Província</label><select id="v">${PROV.map(c=>`<option>${esc(c)}</option>`).join('')}</select><label>Descrição</label><textarea id="d" rows="5" maxlength="1500"></textarea><label>Fotos (até 4)</label><input id="f" type="file" accept="image/jpeg,image/png,image/webp" multiple><button class="btn" style="width:100%" id="go">Enviar para aprovação</button></div>`;
+  $('#go').onclick=async()=>{const t=$('#t').value.trim(),p=$('#p').value;if(t.length<3||p==='')return alert('Preencha o título e o preço.');
+    const b=$('#go');b.disabled=true;b.textContent='A enviar…';
+    try{
+      const r=await sb.from('listings').insert({seller_id:S.me.id,title:t,service:$('#sv').value,duration:$('#du').value.trim(),category_id:Number($('#c').value),price_mzn:Number(p),province:$('#v').value,description:$('#d').value.trim()}).select('id').single();
+      if(r.error)throw r.error;const f=[...$('#f').files].slice(0,4);
+      for(let i=0;i<f.length;i++){const path=S.me.id+'/'+r.data.id+'-'+i+'.'+(f[i].type.split('/')[1]||'jpg');
+        const u=await sb.storage.from('listing-images').upload(path,f[i]);if(u.error)throw u.error;
+        await sb.from('listing_images').insert({listing_id:r.data.id,path,position:i})}
+      await loadAll();alert('Anúncio enviado. Fica visível depois de aprovado pela equipa.');go('mine');
+    }catch(e){ERR(e);b.disabled=false;b.textContent='Enviar para aprovação'}};
+}
+async function setSt(id,s){const e=(await sb.from('listings').update({status:s}).eq('id',id)).error;if(e)return ERR(e);await loadAll();render()}
+async function del(id){if(!confirm('Eliminar este anúncio?'))return;const e=(await sb.from('listings').delete().eq('id',id)).error;if(e)return ERR(e);await loadAll();go(isAdmin()&&S.view==='admin'?'admin':'mine')}
+async function fav(id){if(!S.me)return go('auth');if(S.F.has(id)){await sb.from('favorites').delete().eq('listing_id',id);S.F.delete(id)}else{await sb.from('favorites').insert({user_id:S.me.id,listing_id:id});S.F.add(id)}render()}
+async function report(id){if(!S.me)return go('auth');const t=prompt('Motivo da denúncia:');if(t&&t.trim()){const e=(await sb.from('reports').insert({listing_id:id,reporter_id:S.me.id,reason:t.trim().slice(0,300)})).error;e?ERR(e):alert('Denúncia enviada. Obrigado.')}}
+async function startChat(lid){
+  if(!S.me)return go('auth');const l=S.L.find(x=>x.id===lid);
+  let r=await sb.from('conversations').select('id').eq('listing_id',lid).eq('buyer_id',S.me.id).maybeSingle();
+  if(!r.data){r=await sb.from('conversations').insert({listing_id:lid,buyer_id:S.me.id,seller_id:l.seller_id}).select('id').single();if(r.error)return ERR(r.error)}
+  await loadConvos();go('chat',r.data.id);
+}
+function openChat(a){
+  const c=S.C.find(x=>x.id===S.sel);if(!c){a.innerHTML='<p class="empty">A abrir conversa…</p>';return}
+  const o=c.buyer_id===S.me.id?c.seller_id:c.buyer_id;
+  a.innerHTML=`<button class="btn sec" onclick="go('msgs')">← Conversas</button><div class="box" style="margin-top:10px"><b>${esc(c.listings?c.listings.title:'')}</b> · <span class="price">${mzn(c.listings?c.listings.price_mzn:0)}</span><div class="mu">Conversa com ${esc(nm(o))}. Combinem aqui o pagamento e a entrega.</div></div><div class="msgs" id="ms"></div><div class="bar"><input id="mt" placeholder="Escreva uma mensagem…" maxlength="1000"><label class="btn sec" style="margin:0;cursor:pointer">📷<input id="mf" type="file" accept="image/jpeg,image/png,image/webp" hidden></label><button class="btn" id="sd">Enviar</button></div>`;
+  const send=async(path)=>{const t=$('#mt').value.trim();if(!t&&!path)return;$('#mt').value='';const e=(await sb.from('messages').insert({conversation_id:c.id,sender_id:S.me.id,body:t||null,image_path:path||null})).error;if(e)ERR(e)};
+  $('#sd').onclick=()=>send();$('#mt').onkeydown=e=>{if(e.key==='Enter')send()};
+  $('#mf').onchange=async e=>{const f=e.target.files[0];if(!f)return;const p=c.id+'/'+Date.now()+'.'+(f.type.split('/')[1]||'jpg');const u=await sb.storage.from('chat-images').upload(p,f);u.error?ERR(u.error):send(p)};
+  loadMsgs();
+}
+async function loadMsgs(){
+  const box=$('#ms');if(!box||S.view!=='chat')return;
+  const {data}=await sb.from('messages').select('*').eq('conversation_id',S.sel).order('created_at');const m=data||[];
+  const paths=m.filter(x=>x.image_path).map(x=>x.image_path),urls={};
+  if(paths.length){const s=await sb.storage.from('chat-images').createSignedUrls(paths,3600);(s.data||[]).forEach(x=>urls[x.path]=x.signedUrl)}
+  const mine=m.filter(x=>x.sender_id===S.me.id),last=mine.length?mine[mine.length-1].id:null;
+  box.innerHTML=m.map(x=>`<div class="m ${x.sender_id===S.me.id?'me':''}">${x.image_path&&urls[x.image_path]?`<img src="${esc(urls[x.image_path])}" alt="">`:''}${esc(x.body)}<small>${new Date(x.created_at).toLocaleTimeString('pt-PT',{hour:'2-digit',minute:'2-digit'})}${x.id===last&&x.read_at?' · Lido ✓✓':''}</small></div>`).join('')||'<p class="empty">Diga olá ao vendedor 👋</p>';
+  box.scrollTop=box.scrollHeight;
+  if(m.some(x=>x.sender_id!==S.me.id&&!x.read_at))sb.from('messages').update({read_at:new Date().toISOString()}).eq('conversation_id',S.sel).neq('sender_id',S.me.id).is('read_at',null).then(()=>{});
+}
+async function adminV(a){
+  a.innerHTML='<h2>Painel de administração</h2><p class="empty">A carregar…</p>';
+  const [ps,rp,us]=await Promise.all([sb.from('profiles').select('id,name,phone,seller_status,banned').eq('seller_status','pending'),sb.from('reports').select('*').eq('status','aberta').order('created_at',{ascending:false}),sb.from('profiles').select('id',{count:'exact',head:true})]);
+  if(S.view!=='admin')return;
+  const pend=S.L.filter(l=>l.moderation==='pendente');
+  a.innerHTML=`<h2>Painel de administração</h2><div class="box">Utilizadores: <b>${us.count||0}</b> · Anúncios: <b>${S.L.length}</b> · Pendentes: <b>${pend.length}</b> · Denúncias: <b>${(rp.data||[]).length}</b></div><h2>Vendedores a aprovar</h2>${(ps.data||[]).map(p=>`<div class="box row"><div class="g"><b>${esc(p.name)}</b></div><button class="btn sec" onclick="adm('admin_set_seller',{uid:'${p.id}',s:'approved'})">Aprovar</button><button class="btn bad" onclick="adm('admin_set_seller',{uid:'${p.id}',s:'suspended'})">Rejeitar</button></div>`).join('')||'<p class="mu">Nenhum pedido.</p>'}<h2>Denúncias</h2>${(rp.data||[]).map(r=>{const l=S.L.find(x=>x.id===r.listing_id);return `<div class="box row"><div class="g"><b>${esc(l?l.title:'Anúncio removido')}</b><div class="mu">${esc(r.reason)}</div></div><button class="btn bad" onclick="resolveRep('${r.id}')">Resolver</button></div>`}).join('')||'<p class="mu">Sem denúncias.</p>'}<h2>Anúncios</h2>${S.L.map(l=>`<div class="box"><b>${esc(l.title)}</b><div class="mu">${mzn(l.price_mzn)} · ${esc(nm(l.seller_id))} · ${esc(l.moderation)}</div><div class="row" style="margin-top:8px"><button class="btn sec" onclick="adm('admin_set_moderation',{lid:'${l.id}',m:'ativo'})">Aprovar</button><button class="btn sec" onclick="adm('admin_set_moderation',{lid:'${l.id}',m:'suspenso'})">Suspender</button><button class="btn bad" onclick="del('${l.id}')">Remover</button></div></div>`).join('')||'<p class="empty">Sem anúncios.</p>'}`;
+}
+async function adm(fn,args){const e=(await sb.rpc(fn,args)).error;if(e)return ERR(e);await loadAll();render()}
+async function resolveRep(id){await sb.from('reports').update({status:'resolvida'}).eq('id',id);render()}
+
+</script>
+</body>
+</html>
